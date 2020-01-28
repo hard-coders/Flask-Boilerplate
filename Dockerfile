@@ -1,10 +1,25 @@
-FROM python:3.7-alpine
+# ------------------------------------------------------------------------------
+# Base image
+# ------------------------------------------------------------------------------
+FROM python:3.8-slim AS base
 
-# set working directory
+# ------------------------------------------------------------------------------
+# Install dependencies
+# ------------------------------------------------------------------------------
+FROM base AS deps
+COPY requirements.txt ./
+RUN apt update > /dev/null && \
+        apt install -y build-essential && \
+        pip install --disable-pip-version-check -r requirements.txt
+
+# ------------------------------------------------------------------------------
+# Final image
+# ------------------------------------------------------------------------------
+FROM base
 WORKDIR /usr/src/app
-
-# add and install requirements
 COPY . /usr/src/app
-RUN pip install --disable-pip-version-check --no-cache-dir -r requirements.txt
+COPY --from=deps /root/.cache /root/.cache
+RUN pip install -q --disable-pip-version-check -r requirements.txt && \
+        rm -rf /root/.cache
 
 CMD ["python", "manage.py", "run", "-h", "0.0.0.0"]
